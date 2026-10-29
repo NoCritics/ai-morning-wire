@@ -1,0 +1,47 @@
+<title>AI Morning Wire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>/*__CSS__*/</style>
+<script>
+  (function () {
+    var savedTheme = null;
+    try { savedTheme = localStorage.getItem("ainews.theme"); } catch (error) { savedTheme = null; }
+    document.documentElement.setAttribute("data-theme", savedTheme === "dark" ? "dark" : "light");
+  })();
+</script>
+<div class="page">
+  <header class="masthead">
+    <div class="masthead-row">
+      <h1 class="wordmark">AI Morning Wire</h1>
+      <button type="button" id="theme-toggle" class="text-button" aria-pressed="false">Dark mode</button>
+    </div>
+    <p class="masthead-meta" id="masthead-meta"></p>
+  </header>
+  <div class="controls">
+    <div class="day-tabs scroll-row" id="day-tabs" role="group" aria-label="Show day"></div>
+    <label class="search" for="search">
+      <span class="visually-hidden">Search stories</span>
+      <input id="search" type="search" placeholder="Search models, tools, numbers" autocomplete="off">
+    </label>
+    <div class="chip-row scroll-row" id="type-chips" role="group" aria-label="Filter by type"></div>
+    <div class="toggle-row">
+      <button type="button" id="unread-toggle" class="chip" aria-pressed="false">Unread only</button>
+      <button type="button" id="pr-toggle" class="chip" aria-pressed="false">PR check</button>
+      <button type="button" id="bookmarks-toggle" class="chip" aria-pressed="false">Bookmarks <span id="bookmark-count"></span></button>
+    </div>
+  </div>
+  <p class="status" id="status" role="status" aria-live="polite"></p>
+  <p class="run-status" id="run-status" role="status" hidden></p>
+  <main id="feed"></main>
+  <section id="archive-section" class="archive-section" hidden>
+    <details id="archive">
+      <summary>Archive · <span id="archive-count"></span></summary>
+      <div id="archive-days"></div>
+    </details>
+  </section>
+  <section id="bookmarks-view" hidden></section>
+  <footer class="page-footer">Keys: j / k move · o open source · b save · / search</footer>
+</div>
+<script type="application/json" id="news-data">{{NEWS_DATA}}</script>
+<script>/*__JS__*/</script>

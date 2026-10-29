@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(py -3 runstate.py *)",
+      "Bash(py -3 build.py *)",
+      "Bash(date)",
+      "Bash(date +*)"
+    ],
+    "deny": [
+      "PowerShell",
+      "Artifact(action:delete)",
+      "Artifact(action:pin)",
+      "Artifact(action:unpin)",
+      "ArtifactData(action:set)",
+      "ArtifactData(action:update)",
+      "ArtifactData(action:delete)",
+      "ArtifactData(action:batch)",
+      "Edit(**/*.py)",
+      "Edit(**/*.ps1)",
+      "Edit(/scripts/**)",
+      "Edit(/template/**)",
+      "Edit(/.claude/**)",
+      "Edit(/docs/**)",
+      "Edit(/CLAUDE.md)",
+      "Edit(/CLAUDE.local.md)",
+      "Edit(**/CLAUDE.md)",
+      "Edit(**/CLAUDE.local.md)",
+      "Edit(/README.md)",
+      "Edit(/config.toml)",
+      "Edit(/config.example.toml)"
+    ]
+  }
+}

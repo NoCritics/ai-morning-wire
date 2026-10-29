@@ -1,0 +1,34 @@
+# AI Morning Wire settings. Copy this file to config.toml and edit; every key is optional.
+
+# When the scheduled task starts, 24-hour HH:MM. Editing it here does not move the task: run setup.ps1 again (or setup.ps1 -Time HH:MM).
+time = "08:00"
+# Most stories kept per day, across all sources (1 or more).
+max_stories_per_day = 25
+# Let a browser fetch pages that block plain requests (needs the Playwright MCP server in Claude Code).
+# To change it, run setup.ps1 again: setup writes the allow rules this feature needs, and a hand edit leaves the morning run stalled on prompts.
+browser_fallback = false
+# Also publish the digest as a claude.ai page. To change it, run setup.ps1 again (same reason as browser_fallback).
+claude_ai_page = false
+# Full path to python.exe, used by the runbook's commands and the allow rules; "" means the runbook uses `py -3`.
+# After changing it, run setup.ps1 again.
+python = ""
+# Full path to claude.exe, written by setup.ps1 (which finds it itself) as the program the scheduled task launches. Nothing else reads it.
+claude = ""
+# The Task Scheduler task name that setup.ps1 uses by default (when run without -TaskName).
+task_name = "AI Morning Wire"
+
+[sources]
+# Hacker News front page (on by default).
+hacker_news = true
+# Hugging Face Daily Papers (on by default).
+daily_papers = true
+# AlphaSignal newsletter, opt-in: see README: Sources and their terms.
+alphasignal = false
+# Public t.me/s previews of the channels below, opt-in: see README: Sources and their terms.
+telegram = false
+# Telegram channels read when telegram is on.
+telegram_channels = ["neuraldvig", "whackdoor"]
+# Most Hacker News stories picked per day (1 or more).
+hacker_news_max = 12
+# Most Daily Papers stories picked per day (1 or more).
+daily_papers_max = 8

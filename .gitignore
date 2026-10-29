@@ -1,0 +1,11 @@
+data/
+ai-news.html
+.remember/
+__pycache__/
+.pytest_cache/
+.playwright-mcp/
+work/
+.venv/
+.claude/scheduled_tasks.lock
+config.toml
+.claude/settings.local.json
