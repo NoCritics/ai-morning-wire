@@ -79,21 +79,26 @@
     return dateValue.getFullYear() + "-" + month + "-" + day;
   }
 
+  // Noon, so a date never slips a day across a timezone or daylight-saving change.
+  function noonOf(isoDate) {
+    return new Date(isoDate + "T12:00:00");
+  }
+
   function shortDate(isoDate) {
-    return new Date(isoDate + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+    return noonOf(isoDate).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
   }
 
   function dayLabel(isoDate) {
     const now = new Date();
     if (isoDate === localIsoDate(now)) return "Today";
     if (isoDate === localIsoDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1))) return "Yesterday";
-    return new Date(isoDate + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+    return noonOf(isoDate).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
   }
 
   function tabLabel(isoDate) {
     const label = dayLabel(isoDate);
     if (label === "Today" || label === "Yesterday") return label;
-    return new Date(isoDate + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric" });
+    return noonOf(isoDate).toLocaleDateString("en-GB", { weekday: "short", day: "numeric" });
   }
 
   function sourceHost(url) {
@@ -136,6 +141,14 @@
     if (state.prCheckOnly && !item.pr_check) return false;
     if (state.query !== "" && !searchableText(item).includes(state.query)) return false;
     return true;
+  }
+
+  function matchingItems(items) {
+    const matches = [];
+    for (const item of items) {
+      if (itemMatches(item)) matches.push(item);
+    }
+    return matches;
   }
 
   function showStatus(message) {
@@ -299,6 +312,13 @@
     return article;
   }
 
+  function labelledParagraph(className, label, text) {
+    const paragraph = element("p", className);
+    paragraph.appendChild(element("span", "pr-label", label));
+    paragraph.appendChild(document.createTextNode(text));
+    return paragraph;
+  }
+
   function renderPrCheck(item) {
     const prCheck = item.pr_check;
     const block = element("details", "pr-check");
@@ -310,14 +330,8 @@
     block.appendChild(element("summary", "pr-check-summary", "Without the PR"));
     const body = element("div", "pr-check-body");
     block.appendChild(body);
-    const why = element("p", "pr-why");
-    why.appendChild(element("span", "pr-label", "Why checked"));
-    why.appendChild(document.createTextNode(prCheck.why));
-    body.appendChild(why);
-    const holdsUp = element("p", "pr-holds-up");
-    holdsUp.appendChild(element("span", "pr-label", "What holds up"));
-    holdsUp.appendChild(document.createTextNode(prCheck.holds_up));
-    body.appendChild(holdsUp);
+    body.appendChild(labelledParagraph("pr-why", "Why checked", prCheck.why));
+    body.appendChild(labelledParagraph("pr-holds-up", "What holds up", prCheck.holds_up));
     const notes = element("ul", "pr-notes");
     for (const kind of Object.keys(PR_NOTE_LABELS)) {
       for (const note of prCheck.notes) {
@@ -339,10 +353,7 @@
   }
 
   function renderDay(day, container) {
-    const visibleItems = [];
-    for (const item of day.items) {
-      if (itemMatches(item)) visibleItems.push(item);
-    }
+    const visibleItems = matchingItems(day.items);
     if (visibleItems.length === 0) return 0;
     const section = element("section", "day");
     const header = element("header", "day-header");
@@ -366,12 +377,17 @@
     return visibleItems.length;
   }
 
+  function renderDays(days, container) {
+    let shownCount = 0;
+    for (const day of days) {
+      shownCount += renderDay(day, container);
+    }
+    return shownCount;
+  }
+
   function renderBookmarks(container) {
     const allBookmarks = bookmarkedItems();
-    const visibleItems = [];
-    for (const item of allBookmarks) {
-      if (itemMatches(item)) visibleItems.push(item);
-    }
+    const visibleItems = matchingItems(allBookmarks);
     const section = element("section", "day");
     const header = element("header", "day-header");
     header.appendChild(element("h2", "day-title", "Bookmarks"));
@@ -489,36 +505,26 @@
     }
     feedContainer.hidden = false;
     bookmarksView.hidden = true;
-    if (state.activeDay === ARCHIVE_TAB) {
+    if (state.activeDay !== null) {
       archiveSection.hidden = true;
-      let shownCount = 0;
-      for (const day of newsData.archive) {
-        shownCount += renderDay(day, feedContainer);
+      const shownDays = [];
+      if (state.activeDay === ARCHIVE_TAB) {
+        shownDays.push(...newsData.archive);
+      } else {
+        for (const day of newsData.feed) {
+          if (day.date === state.activeDay) shownDays.push(day);
+        }
       }
-      if (newsData.archive.length === 0) {
+      const shownCount = renderDays(shownDays, feedContainer);
+      if (state.activeDay === ARCHIVE_TAB && newsData.archive.length === 0) {
         feedContainer.appendChild(element("p", "empty", "Nothing archived yet. Stories move here 7 days after they arrive and stay for 30 days."));
       } else if (shownCount === 0) {
         renderEmptyFeed(feedContainer);
       }
       return;
     }
-    if (state.activeDay !== null) {
-      archiveSection.hidden = true;
-      let shownCount = 0;
-      for (const day of newsData.feed) {
-        if (day.date === state.activeDay) shownCount += renderDay(day, feedContainer);
-      }
-      if (shownCount === 0) renderEmptyFeed(feedContainer);
-      return;
-    }
-    let feedCount = 0;
-    for (const day of newsData.feed) {
-      feedCount += renderDay(day, feedContainer);
-    }
-    let archiveCount = 0;
-    for (const day of newsData.archive) {
-      archiveCount += renderDay(day, archiveDays);
-    }
+    const feedCount = renderDays(newsData.feed, feedContainer);
+    const archiveCount = renderDays(newsData.archive, archiveDays);
     archiveSection.hidden = archiveCount === 0;
     document.getElementById("archive-count").textContent = archiveCount + (archiveCount === 1 ? " story" : " stories");
     if (state.query !== "" && archiveCount > 0) document.getElementById("archive").open = true;
@@ -667,14 +673,6 @@
     }
   }
 
-  function loadTheme() {
-    try {
-      return localStorage.getItem(THEME_KEY) === "dark" ? "dark" : "light";
-    } catch (error) {
-      return "light";
-    }
-  }
-
   function applyTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
     const button = document.getElementById("theme-toggle");
@@ -734,7 +732,8 @@
 
   function init() {
     state.syncedBookmarks = indexById(newsData.bookmarks);
-    applyTheme(loadTheme());
+    // page.html's inline script has already set data-theme from the saved choice.
+    applyTheme(document.documentElement.getAttribute("data-theme"));
     document.getElementById("theme-toggle").addEventListener("click", function () {
       applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark");
     });

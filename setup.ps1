@@ -28,6 +28,7 @@ $PromptScripts = @('collect.py', 'browser_source.py', 'summarize.py', 'assemble.
 $PlaywrightServerNames = @()
 $DefaultTaskName = 'AI Morning Wire'
 $RunbookBrowserTools = @('browser_navigate', 'browser_wait_for', 'browser_evaluate', 'browser_close')
+$ArtifactRules = @('Artifact', 'ArtifactData', 'Skill(artifact-capabilities)', 'Skill(artifact-design)')
 
 function Stop-Setup($Message) {
     Write-Host ''
@@ -590,7 +591,7 @@ if (Test-Path -LiteralPath $ConfigPath) {
         $WriteConfig = $false
         Write-Host 'config.toml already exists. Replace it with these answers? -> no (-Yes and -DryRun never replace it; answer yes interactively, or delete the file, to replace it)'
     } else {
-        $WriteConfig = Confirm-Step "config.toml already exists. Replace it with these answers?" $false
+        $WriteConfig = Read-YesNo "config.toml already exists. Replace it with these answers?" $false $false
     }
     if (-not $WriteConfig) {
         Write-Host 'Keeping the existing config.toml.'
@@ -675,20 +676,31 @@ if ($UseBrowserFallback) {
 # The Artifact tools and the two skills the runbook loads before a first page exist only for the claude.ai page. The deny rules
 # for deleting, pinning and writing the page's database stay in the committed .claude\settings.json whatever this says.
 if ($ClaudeAiPage) {
-    $AllowRules += 'Artifact'
-    $AllowRules += 'ArtifactData'
-    $AllowRules += 'Skill(artifact-capabilities)'
-    $AllowRules += 'Skill(artifact-design)'
+    foreach ($ArtifactRule in $ArtifactRules) {
+        $AllowRules += $ArtifactRule
+    }
 }
 # Rules setup owns are replaced, not accumulated: script rules for any interpreter spelling, and each optional group's rules when
 # that feature is off. Everything else in an existing file is kept.
-$OwnedRulePatterns = @('^(Bash|PowerShell)\(.*\b(collect|browser_source|summarize|assemble|build|runstate)\.py \*\)$')
+$ScriptNamePatterns = @()
+foreach ($ScriptName in $PromptScripts) {
+    $ScriptNamePatterns += [regex]::Escape($ScriptName.Substring(0, $ScriptName.Length - 3))
+}
+$OwnedRulePatterns = @('^(Bash|PowerShell)\(.*\b(' + ($ScriptNamePatterns -join '|') + ')\.py \*\)$')
 if (-not $UseBrowserFallback) {
+    $BrowserToolPatterns = @()
+    foreach ($BrowserTool in $RunbookBrowserTools) {
+        $BrowserToolPatterns += [regex]::Escape($BrowserTool)
+    }
     $OwnedRulePatterns += '^WebFetch$'
-    $OwnedRulePatterns += '^mcp__[A-Za-z0-9_-]+__(browser_navigate|browser_wait_for|browser_evaluate|browser_close)$'
+    $OwnedRulePatterns += '^mcp__[A-Za-z0-9_-]+__(' + ($BrowserToolPatterns -join '|') + ')$'
 }
 if (-not $ClaudeAiPage) {
-    $OwnedRulePatterns += '^(Artifact|ArtifactData|Skill\(artifact-capabilities\)|Skill\(artifact-design\))$'
+    $ArtifactRulePatterns = @()
+    foreach ($ArtifactRule in $ArtifactRules) {
+        $ArtifactRulePatterns += [regex]::Escape($ArtifactRule)
+    }
+    $OwnedRulePatterns += '^(' + ($ArtifactRulePatterns -join '|') + ')$'
 }
 $SettingsJson = Get-MergedSettingsJson $AllowRules $OwnedRulePatterns
 if ($DryRun) {
@@ -714,7 +726,6 @@ Write-Host ''
 Write-Host $RegisterCommand
 Write-Host ''
 $ExistingTask = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-$Register = $true
 if ($null -ne $ExistingTask) {
     Write-Host "A task named '$TaskName' already exists; registering replaces it." -ForegroundColor Yellow
     $Register = Confirm-Step 'Replace the existing task?' $false
