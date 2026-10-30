@@ -5,7 +5,7 @@ from pathlib import Path
 
 from ainews import sources, urls
 
-NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
+NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)*")  # a version such as 1.0.2 is one number
 ISO_DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
 
 
@@ -78,7 +78,7 @@ def checked_texts(item):
 
 
 def unmatched_numbers(item, source_text):
-    """(number, text) pairs whose number appears nowhere in the item's sources, ignoring thousands commas.
+    """(number, text) pairs whose number appears nowhere in the item's sources as a whole number, ignoring thousands commas.
 
     A date written 2026-10-12 counts as one value: it matches when the sources hold the same date in any
     common form, and is reported whole when they don't.
@@ -96,9 +96,14 @@ def unmatched_numbers(item, source_text):
                 unmatched.append((date_match.group(0), text))
             remaining_text = remaining_text.replace(date_match.group(0), " ")
         for number in NUMBER.findall(remaining_text):
-            if number.replace(",", "") not in comparable_text:
+            if not whole_number_in_text(number.replace(",", ""), comparable_text):
                 unmatched.append((number, text))
     return unmatched
+
+
+def whole_number_in_text(number, text):
+    """True when the number appears in the text on its own: 70 matches "70B", "$70." or "H.70" but not "1970" or "1.70"."""
+    return re.search(rf"(?<!\d)(?<!\d\.){re.escape(number)}(?!\.?\d)", text) is not None
 
 
 def comparable_words(text):

@@ -393,3 +393,15 @@ def test_http_get_reads_at_most_the_size_cap(monkeypatch):
     text = sources.http_get("https://example.org/huge")
     assert read_sizes == [sources.MAX_RESPONSE_BYTES]
     assert len(text) == sources.MAX_RESPONSE_BYTES
+
+
+def test_html_to_text_keeps_table_cells_apart():
+    html_text = "<table><tr><th>Model</th><th>Price</th></tr><tr><td>$122</td><td>174.1</td></tr></table>"
+    text = sources.html_to_text(html_text)
+    assert "$122 174.1" in text
+    assert "Model Price" in text
+
+
+def test_html_to_text_keeps_digits_of_neighbouring_elements_apart():
+    html_text = "<div><span>Claude Sonnet 5</span><span>45.1%</span> and <b>OpenAI</b> <i>v</i><i>2</i></div>"
+    assert sources.html_to_text(html_text) == "Claude Sonnet 5 45.1% and OpenAI v2"

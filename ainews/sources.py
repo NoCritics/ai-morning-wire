@@ -35,6 +35,7 @@ BLOCK_TAGS = {
     "p", "div", "section", "article", "main", "br", "li", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6",
     "tr", "table", "pre", "blockquote", "header", "title",
 }
+CELL_TAGS = {"td", "th"}  # a space on each side, so the numbers of neighbouring cells stay apart
 
 
 TWITTERAPI_ACCOUNT_STATUSES = (401, 402, 403)
@@ -232,6 +233,8 @@ class TextExtractor(HTMLParser):
             return
         if tag in BLOCK_TAGS:
             self.chunks.append("\n")
+        if tag in CELL_TAGS:
+            self.chunks.append(" ")
         if tag == "li":
             self.chunks.append("- ")
 
@@ -246,9 +249,14 @@ class TextExtractor(HTMLParser):
             return
         if self.skip_depth == 0 and tag in BLOCK_TAGS:
             self.chunks.append("\n")
+        if self.skip_depth == 0 and tag in CELL_TAGS:
+            self.chunks.append(" ")
 
     def handle_data(self, data):
         if self.skip_depth == 0:
+            # Digits that only a tag separates, as in <span>5</span><span>45.1%</span>, are separate values.
+            if self.chunks and self.chunks[-1][-1:].isdigit() and data[:1].isdigit():
+                self.chunks.append(" ")
             self.chunks.append(data)
 
 

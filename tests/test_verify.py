@@ -126,3 +126,38 @@ def test_unmatched_numbers_checks_the_title():
 def test_date_in_text_accepts_sept_for_september():
     assert verify.date_in_text(date(2026, 9, 3), "Sept. 3, 2026")
     assert verify.date_in_text(date(2026, 9, 3), "3 Sept 2026")
+
+
+@pytest.mark.parametrize("item_number, source_text", [
+    ("70", "Copyright 1970."),
+    ("128", "Width 1280px."),
+    ("5", "25 users"),
+    ("5", "version 1.5"),
+    ("1", "costs 1.25 dollars"),
+])
+def test_unmatched_numbers_does_not_match_a_number_inside_a_longer_one(item_number, source_text):
+    item = {"title": f"Claim {item_number}", "bullets": []}
+    assert verify.unmatched_numbers(item, source_text) == [(item_number, f"Claim {item_number}")]
+
+
+@pytest.mark.parametrize("item_number, source_text", [
+    ("70", "A 70B model."),
+    ("70", "costs $70."),
+    ("70", "(70)"),
+    ("70", "70% faster"),
+    ("70", "v70-beta"),
+    ("1,280", "1,280 tokens"),
+    ("1280", "1,280 tokens"),
+])
+def test_unmatched_numbers_matches_a_whole_number_next_to_letters_and_punctuation(item_number, source_text):
+    item = {"title": f"Claim {item_number}", "bullets": []}
+    assert verify.unmatched_numbers(item, source_text) == []
+
+
+@pytest.mark.parametrize("item_text, source_text", [
+    ("Exports H.264 video", "Export: H.264 HEVC AV1"),
+    ("Version 1.0.2 ships", "Latest: 1.0.2 Trim"),
+])
+def test_unmatched_numbers_matches_numbers_after_a_letter_and_dot_or_inside_a_version(item_text, source_text):
+    item = {"title": item_text, "bullets": []}
+    assert verify.unmatched_numbers(item, source_text) == []
