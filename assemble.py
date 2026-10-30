@@ -50,11 +50,12 @@ def check_item(item, where, work_dir, story_slugs, earlier_items):
     uncollected = verify.uncollected_source_urls(item, collected_urls)
     if uncollected:
         raise store.DataError(f"{where}: cites a source that was not read for its story: {', '.join(uncollected)}")
+    all_source_text = "\n".join(source_texts)
     warnings = []
-    for number, text in verify.unmatched_numbers(item, "\n".join(source_texts)):
+    for number, text in verify.unmatched_numbers(item, all_source_text):
         warnings.append(f"{where}: number {number} is not in the sources: {text}")
     pitch = (item.get("pr_check") or {}).get("pitch")
-    if pitch is not None and not verify.pitch_in_sources(pitch, "\n".join(source_texts)):
+    if pitch is not None and not verify.pitch_in_sources(pitch, all_source_text):
         warnings.append(f"{where}: the PR check's pitch is not quoted word for word from the sources: \"{pitch}\"")
     for earlier_date, earlier_title, shared_url in verify.earlier_repeats(item, earlier_items):
         warnings.append(f"{where}: may repeat {earlier_date} item \"{earlier_title}\" (both cite {shared_url})")
@@ -76,6 +77,19 @@ def items_file_paths(work_dir):
         if items_path.exists():
             paths.append(items_path)
     return paths
+
+
+def next_free_id(title, used_ids):
+    """The title as a slug, with -2, -3, ... added while another item or bookmark already has the id."""
+    base_id = urls.slugify(title, 60)
+    if base_id == "":
+        base_id = "item"
+    item_id = base_id
+    suffix = 2
+    while item_id in used_ids:
+        item_id = f"{base_id}-{suffix}"
+        suffix += 1
+    return item_id
 
 
 def assemble(root, run_date, accept_warnings=False):
@@ -127,14 +141,7 @@ def assemble(root, run_date, accept_warnings=False):
                     "published, but it also covers stories that are new"
                 )
                 continue
-            base_id = urls.slugify(str(draft_item.get("title", "")), 60)
-            if base_id == "":
-                base_id = "item"
-            item_id = base_id
-            suffix = 2
-            while item_id in used_ids:
-                item_id = f"{base_id}-{suffix}"
-                suffix += 1
+            item_id = next_free_id(str(draft_item.get("title", "")), used_ids)
             item = {"id": item_id}
             for key, value in draft_item.items():
                 if key != "id":

@@ -52,6 +52,19 @@ def write_day(days_dir, day_date, items):
     return day_path
 
 
+def embedded_news_data(page_text):
+    """The JSON the built page carries in its news-data script element."""
+    start = page_text.index('id="news-data">') + len('id="news-data">')
+    return json.loads(page_text[start:page_text.index("</script>", start)])
+
+
+def make_root_with_broken_config(root):
+    """The root with a template and a config.toml whose time is not HH:MM; returns the root."""
+    make_template(root / "template")
+    (root / "config.toml").write_text('time = "8:00"\n', encoding="utf-8")
+    return root
+
+
 def make_template(template_dir):
     template_dir.mkdir(parents=True, exist_ok=True)
     (template_dir / "page.html").write_text(

@@ -71,7 +71,7 @@ def build(root, today, import_bookmarks_path=None, settings=None):
     feed_days, archive_days = render.split_days(days, today)
     store.write_text_atomic(
         root / "ai-news.html",
-        render.standalone_page(render.render_page(root / "template", days, bookmarks, today, status, digest_time)),
+        render.standalone_page(render.render_page(root / "template", feed_days, archive_days, bookmarks, today, status, digest_time)),
     )
     feed_dates = []
     for day in feed_days:
@@ -102,6 +102,11 @@ def build(root, today, import_bookmarks_path=None, settings=None):
     return summary
 
 
+def report_stopped_build(log_path, error):
+    store.append_run_log(log_path, f"build stopped: {error}")
+    print(f"Build stopped, page left unchanged: {error}", file=sys.stderr)
+
+
 def main():
     store.use_utf8_console()
     parser = argparse.ArgumentParser(description="Build the AI news page from data/.")
@@ -116,8 +121,7 @@ def main():
     try:
         summary = build(arguments.root, arguments.today, arguments.import_bookmarks)
     except store.DataError as error:
-        store.append_run_log(log_path, f"build stopped: {error}")
-        print(f"Build stopped, page left unchanged: {error}", file=sys.stderr)
+        report_stopped_build(log_path, error)
         return 1
     store.append_run_log(log_path, summary)
     print(summary)

@@ -23,8 +23,7 @@ def rebuild_page_after_failure(root, log_path, today):
     try:
         build.build(root, today)
     except (store.DataError, OSError) as error:
-        store.append_run_log(log_path, f"build stopped: {error}")
-        print(f"Build stopped, page left unchanged: {error}", file=sys.stderr)
+        build.report_stopped_build(log_path, error)
         return False
     return True
 

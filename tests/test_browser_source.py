@@ -7,13 +7,13 @@ import pytest
 
 import browser_source
 from ainews import sources
+from tests.helpers import raw_browser_capture
 
 ARTICLE_TEXT = "GPT-6 and Intelligent UI for everyone\n\n\n   October 7, 2026   \n\n" + "Availability details. " * 20
 
 
 def capture(text):
-    """What the browser tool writes: the page script's return value as a JSON string."""
-    return json.dumps("URL: https://openai.com/index/gpt-6-for-everyone/\n\n(text read in a browser)\n\n" + text)
+    return raw_browser_capture("https://openai.com/index/gpt-6-for-everyone/", text)
 
 
 def test_browser_capture_text_decodes_the_json_string_and_tidies_lines():

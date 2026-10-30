@@ -6,7 +6,7 @@ import pytest
 
 import build
 from ainews import config, render, store
-from tests.helpers import make_item, make_template, write_day
+from tests.helpers import embedded_news_data, make_item, make_root_with_broken_config, make_template, write_day
 
 TODAY = date(2026, 10, 31)
 
@@ -38,7 +38,7 @@ def test_embed_json_cannot_close_the_script_element():
 def test_render_page_standalone_and_fragment(tmp_path):
     make_template(tmp_path / "template")
     days = [{"date": "2026-10-31", "items": [make_item()]}]
-    fragment = render.render_page(tmp_path / "template", days, [], TODAY, {"result": None, "items": None, "failedReason": None}, "08:00")
+    fragment = render.render_page(tmp_path / "template", days, [], [], TODAY, {"result": None, "items": None, "failedReason": None}, "08:00")
     standalone = render.standalone_page(fragment)
     assert standalone == render.STANDALONE_HEAD + fragment + render.STANDALONE_TAIL
     assert standalone.startswith("<!doctype html>")
@@ -75,7 +75,8 @@ def test_build_keeps_the_local_page_whole_and_the_published_page_small(tmp_path)
     remaining_days = store.load_days(root / "data" / "days")
     saved_bookmarks = store.load_bookmarks(root / "data" / "bookmarks.json")
     no_run_status = {"result": None, "items": None, "failedReason": None}
-    assert local_page == render.standalone_page(render.render_page(root / "template", remaining_days, saved_bookmarks, TODAY, no_run_status, "08:00"))
+    feed_days, archive_days = render.split_days(remaining_days, TODAY)
+    assert local_page == render.standalone_page(render.render_page(root / "template", feed_days, archive_days, saved_bookmarks, TODAY, no_run_status, "08:00"))
     published_page = (root / "work" / "publish" / "ai-news.html").read_text(encoding="utf-8")
     assert "saved-item" not in published_page
     assert "xing4-0-29b-a4b" not in published_page
@@ -92,8 +93,7 @@ def test_render_published_page_links_side_files_and_embeds_no_items(tmp_path):
     assert '<script src="page.js"></script>' in published
     for left_over in ("/*__CSS__*/", "/*__JS__*/", "body{}", "void 0;", "Xing4.0-29B-A4B"):
         assert left_over not in published
-    start = published.index('id="news-data">') + len('id="news-data">')
-    assert json.loads(published[start:published.index("</script>", start)]) == {
+    assert embedded_news_data(published) == {
         "built": "2026-10-31",
         "feedDates": ["2026-10-31"],
         "archiveDates": [],
@@ -261,9 +261,7 @@ def test_build_main_accepts_tomorrow_as_today(tmp_path, monkeypatch):
 
 
 def page_data(root):
-    page = (root / "work" / "publish" / "ai-news.html").read_text(encoding="utf-8")
-    start = page.index('id="news-data">') + len('id="news-data">')
-    return json.loads(page[start:page.index("</script>", start)])
+    return embedded_news_data((root / "work" / "publish" / "ai-news.html").read_text(encoding="utf-8"))
 
 
 def test_build_embeds_todays_failed_status_and_the_digest_time(tmp_path):
@@ -287,8 +285,7 @@ def test_build_embeds_published_zero_items(tmp_path):
 
 
 def test_build_with_a_broken_config_still_renders_with_no_digest_time(tmp_path):
-    root = make_root(tmp_path)
-    (root / "config.toml").write_text('time = "8:00"\n', encoding="utf-8")
+    root = make_root_with_broken_config(tmp_path)
     store.append_run_log(root / "data" / "runs.log", f"failed: {TODAY}, config: time is wrong")
     build.build(root, TODAY)
     data = page_data(root)

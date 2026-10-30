@@ -89,14 +89,14 @@ def daily_papers_url(papers_date):
     return DAILY_PAPERS_URL.format(papers_date.isoformat())
 
 
-def daily_paper_stories(payload, max_stories, min_upvotes=PAPERS_MIN_UPVOTES):
+def daily_paper_stories(payload, max_stories):
     """The most upvoted papers of one Daily Papers list, read through their arXiv abstracts."""
     candidates = []
     for entry in payload if isinstance(payload, list) else []:
         if not isinstance(entry, dict) or not isinstance(entry.get("paper"), dict):
             continue
         paper = entry["paper"]
-        if not paper.get("id") or (paper.get("upvotes") or 0) < min_upvotes:
+        if not paper.get("id") or (paper.get("upvotes") or 0) < PAPERS_MIN_UPVOTES:
             continue
         candidates.append(paper)
     candidates.sort(key=lambda paper: paper.get("upvotes") or 0, reverse=True)
@@ -190,16 +190,16 @@ def telegram_posts(page_html):
     return posts
 
 
-def post_headline(text, max_length=140):
+def post_headline(text):
     """The post's first line, shortened at a word boundary."""
     first_line = ""
     for line in text.split("\n"):
         if line.strip():
             first_line = line.strip()
             break
-    if len(first_line) <= max_length:
+    if len(first_line) <= 140:
         return first_line
-    return first_line[:max_length].rsplit(" ", 1)[0] + "…"
+    return first_line[:140].rsplit(" ", 1)[0] + "…"
 
 
 def telegram_skip_reason(post, now, since_hours):

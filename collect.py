@@ -43,7 +43,6 @@ def new_record(story, slug, via):
         "headline": story["title"],
         "published": story["published"].date().isoformat(),
         "sources": [],
-        "error": None,
     }
     if story.get("note"):
         record["note"] = story["note"]
@@ -102,24 +101,40 @@ def published_source_urls(root):
     return published_keys
 
 
+def json_source_stories(fetch_page, source_name, url, parse_stories, max_stories, notes, failures):
+    """The stories of a JSON source, or [] after noting it and leaving it in failures when it cannot be read."""
+    try:
+        return parse_stories(json.loads(fetch_page(url)), max_stories)
+    except UNREADABLE_PAGE_ERRORS as error:
+        notes.append(f"{source_name} unreadable: {error}")
+        failures[source_name] = str(error)
+        return []
+
+
 def extra_stories(fetch_page, now, since_hours, run_date, settings, notes, failures):
     """Hacker News, Daily Papers and Telegram stories, for the sources that are turned on. A source that
     cannot be read is noted, not fatal; one that failed outright is also left in failures (name -> error)."""
     found = []
     if settings["hacker_news"]:
-        try:
-            payload = json.loads(fetch_page(discovery.hacker_news_search_url(now, since_hours)))
-            found.extend(discovery.hacker_news_stories(payload, settings["hacker_news_max"]))
-        except UNREADABLE_PAGE_ERRORS as error:
-            notes.append(f"{discovery.HACKER_NEWS} unreadable: {error}")
-            failures[discovery.HACKER_NEWS] = str(error)
+        found.extend(json_source_stories(
+            fetch_page,
+            discovery.HACKER_NEWS,
+            discovery.hacker_news_search_url(now, since_hours),
+            discovery.hacker_news_stories,
+            settings["hacker_news_max"],
+            notes,
+            failures,
+        ))
     if settings["daily_papers"]:
-        try:
-            payload = json.loads(fetch_page(discovery.daily_papers_url(run_date - timedelta(days=1))))
-            found.extend(discovery.daily_paper_stories(payload, settings["daily_papers_max"]))
-        except UNREADABLE_PAGE_ERRORS as error:
-            notes.append(f"{discovery.DAILY_PAPERS} unreadable: {error}")
-            failures[discovery.DAILY_PAPERS] = str(error)
+        found.extend(json_source_stories(
+            fetch_page,
+            discovery.DAILY_PAPERS,
+            discovery.daily_papers_url(run_date - timedelta(days=1)),
+            discovery.daily_paper_stories,
+            settings["daily_papers_max"],
+            notes,
+            failures,
+        ))
     if settings["telegram"]:
         channel_errors = []
         for channel in settings["telegram_channels"]:
@@ -296,8 +311,7 @@ def main():
     arguments = parser.parse_args()
     log_path = arguments.root / "data" / "runs.log"
     try:
-        settings = config.load_config(arguments.root)
-        records, notes = collect(arguments.root, arguments.date, datetime.now(timezone.utc), arguments.since_hours, settings=settings)
+        records, notes = collect(arguments.root, arguments.date, datetime.now(timezone.utc), arguments.since_hours)
     except EverySourceUnreadable as error:
         store.append_run_log(log_path, f"collect failed: every enabled source unreadable: {error}")
         print(f"collect failed: every enabled source unreadable: {error}", file=sys.stderr)
@@ -314,7 +328,7 @@ def main():
         if has_readable_source(record):
             readable_count += 1
         else:
-            problems.append(f"{record['slug']} ({record['error'] or 'no source could be read'})")
+            problems.append(f"{record['slug']} (no source could be read)")
     breakdown = []
     for via, count in counts_by_source.items():
         breakdown.append(f"{via} {count}")

@@ -1,11 +1,10 @@
-import json
 import subprocess
 import sys
 from datetime import date, datetime, time
 from pathlib import Path
 
 from ainews import runstate
-from tests.helpers import make_template
+from tests.helpers import embedded_news_data, make_root_with_broken_config, make_template
 
 ROOT = Path(__file__).resolve().parent.parent
 DAY = date(2026, 10, 28)
@@ -132,8 +131,7 @@ def run_cli(root, *arguments):
 
 
 def test_cli_next_action_with_a_broken_config_logs_one_failed_line(tmp_path):
-    make_template(tmp_path / "template")
-    (tmp_path / "config.toml").write_text('time = "8:00"\n', encoding="utf-8")
+    make_root_with_broken_config(tmp_path)
     for _ in range(2):
         completed = run_cli(tmp_path, "next-action")
         assert completed.returncode == 3
@@ -224,8 +222,7 @@ def test_cli_next_action_closes_an_earlier_open_day(tmp_path):
 
 
 def test_cli_closes_an_earlier_open_day_even_with_a_broken_config(tmp_path):
-    make_template(tmp_path / "template")
-    (tmp_path / "config.toml").write_text('time = "8:00"\n', encoding="utf-8")
+    make_root_with_broken_config(tmp_path)
     log_path = tmp_path / "data" / "runs.log"
     log_path.parent.mkdir()
     log_path.write_text("2026-01-01 08:00 started: 2026-01-01\n", encoding="utf-8")
@@ -237,8 +234,7 @@ def test_cli_closes_an_earlier_open_day_even_with_a_broken_config(tmp_path):
 
 
 def test_cli_config_failure_is_not_repeated_after_a_launch_in_between(tmp_path):
-    make_template(tmp_path / "template")
-    (tmp_path / "config.toml").write_text('time = "8:00"\n', encoding="utf-8")
+    make_root_with_broken_config(tmp_path)
     assert run_cli(tmp_path, "next-action").returncode == 3
     assert run_cli(tmp_path, "started").returncode == 0
     assert run_cli(tmp_path, "failed", str(date.today()), "assemble stopped").returncode == 0
@@ -261,12 +257,10 @@ def test_cli_mark_failed_logs_a_stopped_build(tmp_path):
 
 
 def test_cli_next_action_with_a_broken_config_rebuilds_the_page_with_the_failure(tmp_path):
-    make_template(tmp_path / "template")
-    (tmp_path / "config.toml").write_text('time = "8:00"\n', encoding="utf-8")
+    make_root_with_broken_config(tmp_path)
     assert run_cli(tmp_path, "next-action").returncode == 3
     page = (tmp_path / "work" / "publish" / "ai-news.html").read_text(encoding="utf-8")
-    start = page.index('id="news-data">') + len('id="news-data">')
-    data = json.loads(page[start:page.index("</script>", start)])
+    data = embedded_news_data(page)
     assert (tmp_path / "ai-news.html").exists()
     assert data["status"]["result"] == "failed"
     assert data["status"]["failedReason"].startswith("config:")
@@ -274,8 +268,7 @@ def test_cli_next_action_with_a_broken_config_rebuilds_the_page_with_the_failure
 
 
 def test_cli_next_action_with_a_broken_config_and_a_broken_build_stays_exit_3(tmp_path):
-    make_template(tmp_path / "template")
-    (tmp_path / "config.toml").write_text('time = "8:00"\n', encoding="utf-8")
+    make_root_with_broken_config(tmp_path)
     days_dir = tmp_path / "data" / "days"
     days_dir.mkdir(parents=True)
     (days_dir / "2026-10-27.json").write_text("not json", encoding="utf-8")
@@ -287,8 +280,7 @@ def test_cli_next_action_with_a_broken_config_and_a_broken_build_stays_exit_3(tm
 
 
 def test_cli_next_action_on_a_published_day_ignores_a_broken_config(tmp_path):
-    make_template(tmp_path / "template")
-    (tmp_path / "config.toml").write_text('time = "8:00"\n', encoding="utf-8")
+    make_root_with_broken_config(tmp_path)
     log_path = tmp_path / "data" / "runs.log"
     log_path.parent.mkdir()
     log_text = f"{date.today()} 08:00 published: {date.today()}, 33 items\n"
@@ -301,8 +293,7 @@ def test_cli_next_action_on_a_published_day_ignores_a_broken_config(tmp_path):
 
 
 def test_cli_next_action_during_a_run_in_progress_ignores_a_broken_config(tmp_path):
-    make_template(tmp_path / "template")
-    (tmp_path / "config.toml").write_text('time = "8:00"\n', encoding="utf-8")
+    make_root_with_broken_config(tmp_path)
     assert run_cli(tmp_path, "started").returncode == 0
     log_path = tmp_path / "data" / "runs.log"
     log_text = log_path.read_text(encoding="utf-8")

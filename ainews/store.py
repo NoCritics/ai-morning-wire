@@ -258,13 +258,17 @@ def validate_bookmark(bookmark, where):
     require_text(bookmark, "bookmarked_at", where)
 
 
+def upgrade_and_validate_bookmarks(bookmarks, file_name):
+    for index, bookmark in enumerate(bookmarks):
+        upgrade_legacy_item(bookmark)
+        validate_bookmark(bookmark, f"{file_name} entry {index + 1}")
+
+
 def load_bookmarks(bookmarks_path):
     if not Path(bookmarks_path).exists():
         return []
     bookmarks = read_json(bookmarks_path)
-    for index, bookmark in enumerate(bookmarks):
-        upgrade_legacy_item(bookmark)
-        validate_bookmark(bookmark, f"bookmarks.json entry {index + 1}")
+    upgrade_and_validate_bookmarks(bookmarks, "bookmarks.json")
     return bookmarks
 
 
@@ -274,9 +278,7 @@ def read_bookmark_export(export_path):
     exported = read_json(export_path)
     if not isinstance(exported, list):
         raise DataError(f"{export_name}: expected a JSON array of bookmarked items")
-    for index, bookmark in enumerate(exported):
-        upgrade_legacy_item(bookmark)
-        validate_bookmark(bookmark, f"{export_name} entry {index + 1}")
+    upgrade_and_validate_bookmarks(exported, export_name)
     exported.sort(key=lambda bookmark: bookmark["bookmarked_at"], reverse=True)
     return exported
 

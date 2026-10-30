@@ -42,12 +42,12 @@ def fill_template(template_dir, style_element, script_element, news_data):
     return page.replace("{{NEWS_DATA}}", embed_json(news_data))
 
 
-def render_page(template_dir, days, bookmarks, today, status, digest_time):
+def render_page(template_dir, feed_days, archive_days, bookmarks, today, status, digest_time):
     """The whole page with every day embedded; standalone_page() wraps it into the local ai-news.html.
 
-    status is today's {"result", "items", "failedReason"}; digest_time is "HH:MM", or None when config.toml is broken.
+    feed_days and archive_days are the days as split_days returns them. status is today's
+    {"result", "items", "failedReason"}; digest_time is "HH:MM", or None when config.toml is broken.
     """
-    feed_days, archive_days = split_days(days, today)
     css = (Path(template_dir) / "page.css").read_text(encoding="utf-8")
     js = (Path(template_dir) / "page.js").read_text(encoding="utf-8")
     return fill_template(
