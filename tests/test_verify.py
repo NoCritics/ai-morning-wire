@@ -1,3 +1,5 @@
+from datetime import date
+
 import pytest
 
 from ainews import verify
@@ -119,3 +121,8 @@ def test_unmatched_numbers_checks_the_title():
     assert verify.unmatched_numbers(item, "A 70B model") == []
     missing_item = {"title": "Lab releases 405B model", "bullets": []}
     assert verify.unmatched_numbers(missing_item, "A 70B model") == [("405", "Lab releases 405B model")]
+
+
+def test_date_in_text_accepts_sept_for_september():
+    assert verify.date_in_text(date(2026, 9, 3), "Sept. 3, 2026")
+    assert verify.date_in_text(date(2026, 9, 3), "3 Sept 2026")

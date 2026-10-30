@@ -647,3 +647,22 @@ def test_collect_reads_only_the_alphasignal_article_pages_the_daily_cap_reaches(
     records, notes = collect.collect(tmp_path, RUN_DATE, NOW, 48, fetch_counted, read_source, settings=settings)
     assert len(records) == 2
     assert len(article_requests) == 2
+
+
+def test_collect_gives_an_alphasignal_link_without_a_path_a_slug_from_its_title(tmp_path):
+    feed_xml = (
+        '<?xml version="1.0"?><rss version="2.0"><channel>'
+        "<item><title>Pathless Story</title><link>https://alphasignal.ai/?p=123</link><pubDate>Sun, 04 Oct 2026 12:00:00 GMT</pubDate></item>"
+        "</channel></rss>"
+    )
+
+    def fetch_pathless(url):
+        if url == feed.FEED_URL:
+            return feed_xml
+        return article_citing("https://huggingface.co/lab/model")
+
+    records, notes = collect.collect(tmp_path, RUN_DATE, NOW, 48, fetch_pathless, read_source, settings=helpers.all_sources_settings())
+    slugs = []
+    for record in records:
+        slugs.append(record["slug"])
+    assert slugs == ["pathless-story"]

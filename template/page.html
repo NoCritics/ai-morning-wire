@@ -7,7 +7,8 @@
   (function () {
     var savedTheme = null;
     try { savedTheme = localStorage.getItem("ainews.theme"); } catch (error) { savedTheme = null; }
-    document.documentElement.setAttribute("data-theme", savedTheme === "dark" ? "dark" : "light");
+    // With no saved choice the attribute stays unset, so the page follows the system setting.
+    if (savedTheme === "dark" || savedTheme === "light") document.documentElement.setAttribute("data-theme", savedTheme);
   })();
 </script>
 <div class="page">

@@ -673,11 +673,23 @@
     }
   }
 
-  function applyTheme(theme) {
-    document.documentElement.setAttribute("data-theme", theme);
+  // The saved choice if page.html's inline script set one, else whatever the system prefers.
+  function effectiveTheme() {
+    const chosenTheme = document.documentElement.getAttribute("data-theme");
+    if (chosenTheme === "dark" || chosenTheme === "light") return chosenTheme;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+
+  function showThemeOnButton() {
+    const theme = effectiveTheme();
     const button = document.getElementById("theme-toggle");
     button.textContent = theme === "dark" ? "Light mode" : "Dark mode";
     button.setAttribute("aria-pressed", String(theme === "dark"));
+  }
+
+  function chooseTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    showThemeOnButton();
     try {
       localStorage.setItem(THEME_KEY, theme);
     } catch (error) {
@@ -732,10 +744,10 @@
 
   function init() {
     state.syncedBookmarks = indexById(newsData.bookmarks);
-    // page.html's inline script has already set data-theme from the saved choice.
-    applyTheme(document.documentElement.getAttribute("data-theme"));
+    showThemeOnButton();
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", showThemeOnButton);
     document.getElementById("theme-toggle").addEventListener("click", function () {
-      applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark");
+      chooseTheme(effectiveTheme() === "dark" ? "light" : "dark");
     });
     document.getElementById("masthead-meta").textContent = "Updated " + shortDate(newsData.built) + " · summaries from the original sources";
     buildDayTabs();

@@ -54,7 +54,7 @@ Zero new stories is a normal result (Daily Papers is empty on weekends); the pag
 
 This is a reading of each source's terms as of 2026-10-27, not legal advice. Read the terms yourself before turning an opt-in source on.
 
-- **Hacker News** (Algolia HN Search API) and **Hugging Face Daily Papers** (public API): public APIs offered for this kind of use. On by default.
+- **Hacker News** (AI stories with 100+ points from the last 48 hours, through the Algolia HN Search API) and **Hugging Face Daily Papers** (public API): public APIs offered for this kind of use. On by default.
 - **AlphaSignal**, off by default. Its [terms](https://alphasignal.ai/terms) forbid "robot, spider, scraper, crawler, or other automated means" without written permission (section 6) and allow "personal, non-commercial use" (section 7.2). Its `robots.txt` allows all crawlers, with `ai-input=yes`. The collector reads its feed and fetches each article page for the citations, which is the automated access section 6 forbids.
 - **Telegram** (the public `t.me/s` previews of the channels in `telegram_channels`), off by default. Its [terms](https://telegram.org/tos) ban scraping, and its [AI scraping terms](https://telegram.org/tos/content-licensing) forbid "scraping, indexing, harvesting, aggregation or use of data" for AI without the content owners' explicit consent, with no personal-use exception. The collector scrapes the previews and passes each post's first line to the summarizer as a headline.
 - **Primary sources** (the pages the stories link to): fetched one page at a time, saved locally and quoted only as short facts with links. The digest is for your own reading and is never republished.

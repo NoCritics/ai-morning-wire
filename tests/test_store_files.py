@@ -71,7 +71,7 @@ def test_update_seen_records_story_urls_and_forgets_old_entries(tmp_path):
         "date": "2026-10-31",
         "items": [make_item(story_urls=["https://alphasignal.ai/news/a", "https://alphasignal.ai/news/b"])],
     }]
-    kept = store.update_seen(seen_path, days, TODAY)
+    kept = store.update_seen(seen_path, store.load_seen(seen_path), days, TODAY)
     assert kept == {
         "https://alphasignal.ai/news/recent": "2026-10-20",
         "https://alphasignal.ai/news/a": "2026-10-31",

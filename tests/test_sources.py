@@ -264,7 +264,9 @@ class FakeResponse:
         self.headers = email.message.Message()
         self.headers["Content-Type"] = content_type
 
-    def read(self):
+    def read(self, size=-1):
+        if size >= 0:
+            return self.body[:size]
         return self.body
 
     def __enter__(self):
@@ -318,6 +320,7 @@ def test_curl_get_sends_headers_on_stdin_and_rejects_pdf(monkeypatch):
     assert sources.curl_get("https://arxiv.org/abs/1", {"X-API-Key": "secret-value"}, 30) == "<html>ok</html>"
     command, stdin_text = runs[0]
     assert "secret-value" not in " ".join(command)
+    assert command[command.index("--max-filesize") + 1] == str(sources.MAX_RESPONSE_BYTES)
     assert "X-API-Key: secret-value" in stdin_text.decode("utf-8")
     with pytest.raises(sources.SourceError, match="PDF document"):
         sources.curl_get("https://example.org/paper.pdf", {}, 30)
@@ -361,3 +364,32 @@ def test_read_source_x_keeps_using_twitterapi_after_a_timeout(monkeypatch):
 def test_read_source_x_keeps_using_twitterapi_after_a_429(monkeypatch):
     calls = x_post_after_twitterapi_failure(monkeypatch, sources.SourceError("HTTP 429 from api.twitterapi.io", status=429))
     assert "https://api.twitterapi.io/twitter/tweets?tweet_ids=2" in calls
+
+
+def test_html_to_text_keeps_text_inside_a_form_wrapping_the_whole_page():
+    html_text = (
+        "<html><body><form id=aspnetForm><main><h1>Release notes</h1>"
+        "<p>Version 4 ships with 2x faster decoding.</p></main></form></body></html>"
+    )
+    text = sources.html_to_text(html_text)
+    assert "Release notes" in text
+    assert "Version 4 ships with 2x faster decoding." in text
+
+
+def test_http_get_reads_at_most_the_size_cap(monkeypatch):
+    read_sizes = []
+
+    class CountingResponse(FakeResponse):
+        def read(self, size=-1):
+            read_sizes.append(size)
+            if size >= 0:
+                return self.body[:size]
+            return self.body
+
+    def big_urlopen(request, timeout=30):
+        return CountingResponse(b"a" * (sources.MAX_RESPONSE_BYTES + 1000), "text/html")
+
+    monkeypatch.setattr(sources.urllib.request, "urlopen", big_urlopen)
+    text = sources.http_get("https://example.org/huge")
+    assert read_sizes == [sources.MAX_RESPONSE_BYTES]
+    assert len(text) == sources.MAX_RESPONSE_BYTES

@@ -16,6 +16,7 @@ from ainews import urls
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) ai-morning-wire/1.0"
 MAX_SOURCE_CHARS = 40000
+MAX_RESPONSE_BYTES = 5 * 1024 * 1024  # a longer page is cut here, long before the text is cut to MAX_SOURCE_CHARS
 MIN_PAGE_TEXT_CHARS = 200
 PDF_MESSAGE = "PDF document, not readable as text"
 BOT_CHECK_MARKERS = (
@@ -29,7 +30,7 @@ ARXIV_ID = re.compile(r"(\d{4}\.\d{4,5})(v\d+)?")
 TWEET_ID = re.compile(r"/status(?:es)?/(\d+)")
 ATOM = "{http://www.w3.org/2005/Atom}"
 HUGGINGFACE_NON_REPO_SECTIONS = ("blog", "papers", "docs", "collections", "posts", "learn", "models", "spaces", "datasets")
-SKIPPED_TAGS = {"script", "style", "noscript", "svg", "nav", "footer", "form", "button", "iframe", "template"}
+SKIPPED_TAGS = {"script", "style", "noscript", "svg", "nav", "footer", "button", "iframe", "template"}
 BLOCK_TAGS = {
     "p", "div", "section", "article", "main", "br", "li", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6",
     "tr", "table", "pre", "blockquote", "header", "title",
@@ -57,7 +58,7 @@ def curl_get(url, headers, timeout):
     header_lines = []
     for name, value in headers.items():
         header_lines.append(f"{name}: {value}")
-    command = ["curl", "--silent", "--show-error", "--location", "--fail", "--max-time", str(timeout), "--header", "@-", url]
+    command = ["curl", "--silent", "--show-error", "--location", "--fail", "--max-time", str(timeout), "--max-filesize", str(MAX_RESPONSE_BYTES), "--header", "@-", url]
     try:
         completed = subprocess.run(
             command,
@@ -81,7 +82,7 @@ def http_get(url, headers=None, timeout=30):
     request = urllib.request.Request(url, headers=request_headers)
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
-            body = response.read()
+            body = response.read(MAX_RESPONSE_BYTES)
             content_type = response.headers.get_content_type()
             charset = response.headers.get_content_charset() or "utf-8"
         if is_pdf(body, content_type):

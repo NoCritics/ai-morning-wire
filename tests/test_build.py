@@ -305,3 +305,16 @@ def test_page_template_has_no_fixed_time_or_place():
     script = (Path(__file__).resolve().parent.parent / "template" / "page.js").read_text(encoding="utf-8")
     assert "8:" + "17" not in script  # kept split so a plain-text search for the old fixed values stays clean
     assert "U" + "AE" not in script
+
+
+@pytest.mark.parametrize("seen_text", ["{not json", "[]"])
+def test_build_with_a_broken_seen_file_changes_nothing(tmp_path, seen_text):
+    root = make_root(tmp_path)
+    write_day(root / "data" / "days", "2026-10-31", [make_item()])
+    (root / "data" / "seen.json").write_text(seen_text, encoding="utf-8")
+    (root / "ai-news.html").write_text("previous page", encoding="utf-8")
+    with pytest.raises(store.DataError, match="seen.json"):
+        build.build(root, TODAY)
+    assert (root / "ai-news.html").read_text(encoding="utf-8") == "previous page"
+    assert not (root / "work" / "publish").exists()
+    assert (root / "data" / "seen.json").read_text(encoding="utf-8") == seen_text

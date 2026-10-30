@@ -4,7 +4,7 @@ Daily AI-news digest built into one local page (`ai-news.html`), optionally also
 
 ## Sources
 
-On by default: the Hacker News front page and Hugging Face Daily Papers. Opt-in (`config.toml`, `[sources]`): the AlphaSignal newsletter and the public t.me/s previews of the Telegram channels in `telegram_channels`. The `[sources]` table also sets the per-source caps; `max_stories_per_day` caps the total.
+On by default: Hacker News (AI stories with 100+ points from the last 48 hours) and Hugging Face Daily Papers. Opt-in (`config.toml`, `[sources]`): the AlphaSignal newsletter and the public t.me/s previews of the Telegram channels in `telegram_channels`. The `[sources]` table also sets the per-source caps; `max_stories_per_day` caps the total.
 
 ## Summarizers
 

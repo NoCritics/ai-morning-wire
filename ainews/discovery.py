@@ -91,8 +91,10 @@ def daily_papers_url(papers_date):
 
 def daily_paper_stories(payload, max_stories):
     """The most upvoted papers of one Daily Papers list, read through their arXiv abstracts."""
+    if not isinstance(payload, list):
+        return []
     candidates = []
-    for entry in payload if isinstance(payload, list) else []:
+    for entry in payload:
         if not isinstance(entry, dict) or not isinstance(entry.get("paper"), dict):
             continue
         paper = entry["paper"]

@@ -36,12 +36,13 @@ def write_publish_folder(publish_dir, template_dir, feed_days, archive_days, boo
 def build(root, today, import_bookmarks_path=None, settings=None):
     """Returns a one-line summary. Raises store.DataError and leaves everything untouched.
 
-    All data is validated before the bookmark import, retention or pruning change anything. A bookmarks file
+    All data, seen.json included, is validated before the bookmark import, retention or pruning change anything. A bookmarks file
     that the import is about to replace is not read. A broken config.toml does not stop the build: the page
     is written without a digest time, so it can still show the failure.
     """
     data_dir = root / "data"
     loaded_days = store.load_days(data_dir / "days")
+    seen = store.load_seen(data_dir / "seen.json")
     if import_bookmarks_path is not None:
         bookmarks = store.read_bookmark_export(import_bookmarks_path)
         store.write_json_atomic(data_dir / "bookmarks.json", bookmarks)
@@ -87,7 +88,7 @@ def build(root, today, import_bookmarks_path=None, settings=None):
         bookmarks,
         render.render_published_page(root / "template", feed_dates, archive_dates, today, status, digest_time),
     )
-    store.update_seen(data_dir / "seen.json", days, today)
+    store.update_seen(data_dir / "seen.json", seen, days, today)
     feed_item_count = 0
     for day in feed_days:
         feed_item_count += len(day["items"])

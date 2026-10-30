@@ -42,6 +42,9 @@ def date_in_text(found_date, text):
     """True when the text writes this date as 2026-10-12, Oct 12, 2026, Oct. 12, 2026, October 12, 2026 or 12 October 2026; a day below 10 may have a leading zero."""
     short_month = found_date.strftime("%b")
     long_month = found_date.strftime("%B")
+    month_names = f"{short_month}|{long_month}"
+    if found_date.month == 9:
+        month_names += "|Sept"
     day = found_date.day
     year = found_date.year
     day_pattern = str(day)
@@ -49,8 +52,8 @@ def date_in_text(found_date, text):
         day_pattern = f"0?{day}"
     patterns = [
         found_date.isoformat(),
-        rf"\b(?:{short_month}|{long_month})\.? {day_pattern}(?:st|nd|rd|th)?,? {year}\b",
-        rf"\b{day_pattern} (?:{short_month}|{long_month})\.?,? {year}\b",
+        rf"\b(?:{month_names})\.? {day_pattern}(?:st|nd|rd|th)?,? {year}\b",
+        rf"\b{day_pattern} (?:{month_names})\.?,? {year}\b",
     ]
     for pattern in patterns:
         if re.search(pattern, text, re.IGNORECASE):

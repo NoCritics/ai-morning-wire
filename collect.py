@@ -252,7 +252,11 @@ def collect(root, run_date, now, since_hours, fetch_page=None, read_source=None,
             notes.append(f"{ALPHASIGNAL} feed unreadable: {error}")
             failures[ALPHASIGNAL] = str(error)
     for story in alphasignal_stories:  # the article page, which lists the sources, is read only if the cap reaches the story
-        record = new_record(story, unique_slug(sources.path_parts(story["url"])[-1], used_slugs), ALPHASIGNAL)
+        story_path_parts = sources.path_parts(story["url"])
+        slug_source = story["title"]  # a link without a path, like https://alphasignal.ai/?p=123, has no last part to use
+        if story_path_parts:
+            slug_source = story_path_parts[-1]
+        record = new_record(story, unique_slug(slug_source, used_slugs), ALPHASIGNAL)
         candidates.append((record, None, None))
     skip_notes = []
 

@@ -234,12 +234,14 @@ def prune_run_log(log_path, today):
 def load_seen(seen_path):
     if not Path(seen_path).exists():
         return {}
-    return read_json(seen_path)
+    seen = read_json(seen_path)
+    if not isinstance(seen, dict):
+        raise DataError(f"{Path(seen_path).name}: must be a JSON object of story URL to date")
+    return seen
 
 
-def update_seen(seen_path, days, today):
-    """Record every story URL found in the day files; forget entries older than ARCHIVE_DAYS."""
-    seen = load_seen(seen_path)
+def update_seen(seen_path, seen, days, today):
+    """Record every story URL found in the day files in the seen entries already loaded; forget entries older than ARCHIVE_DAYS."""
     for day in days:
         for item in day["items"]:
             for story_url in item["story_urls"]:

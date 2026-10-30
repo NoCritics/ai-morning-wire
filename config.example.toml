@@ -18,7 +18,7 @@ claude = ""
 task_name = "AI Morning Wire"
 
 [sources]
-# Hacker News front page (on by default).
+# Hacker News: AI stories with 100+ points from the last 48 hours (on by default).
 hacker_news = true
 # Hugging Face Daily Papers (on by default).
 daily_papers = true
